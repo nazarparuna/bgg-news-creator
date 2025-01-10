@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Генератор тексту для локалізованих ігор</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            line-height: 1.6;
+        }
+
+        label {
+            display: block;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+
+        input, textarea, select {
+            width: 100%;
+            margin-top: 5px;
+            padding: 10px;
+            font-size: 14px;
+        }
+
+        input.invalid {
+            border: 2px solid red;
+        }
+
+        button {
+            margin-top: 15px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        #output {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            background: #f9f9f9;
+            white-space: pre-wrap;
+        }
+
+        .news-section {
+            margin-top: 20px;
+            border: 1px solid #ccc;
+            padding: 10px;
+            background: #f1f1f1;
+        }
+    </style>
+</head>
+<body>
+<h1>Генератор тексту для локалізованих ігор</h1>
+
+<form id="gameForm">
+    <label for="gameName">Локалізована назва гри:</label>
+    <input type="text" id="gameName" required>
+
+    <label for="publisherSelect">Назва локалізатора:</label>
+    <select id="publisherSelect" required>
+        <option value="" data-badge="" data-code="">Оберіть локалізатора</option>
+        <option value="Geekach" data-badge="52933" data-code="45134">Geekach</option>
+        <option value="Lord of Boards" data-badge="53641" data-code="46500">Lord of Boards</option>
+        <option value="Lelekan" data-badge="56867" data-code="49985">Lelekan</option>
+    </select>
+
+    <input type="hidden" id="publisher" value="">
+    <input type="hidden" id="publisherBadge" value="">
+    <input type="hidden" id="publisherCode" value="">
+
+    <label>
+        <input type="checkbox" id="releaseDateKnown"> Дата відома?
+    </label>
+    <div id="releaseDateFields" style="display: none;">
+        <div style="display: flex; gap: 10px;">
+            <div>
+                <label for="releaseMonth">Місяць релізу:</label>
+                <select id="releaseMonth">
+                    <option value="">Оберіть місяць</option>
+                    <option value="01">Січень</option>
+                    <option value="02">Лютий</option>
+                    <option value="03">Березень</option>
+                    <option value="04">Квітень</option>
+                    <option value="05">Травень</option>
+                    <option value="06">Червень</option>
+                    <option value="07">Липень</option>
+                    <option value="08">Серпень</option>
+                    <option value="09">Вересень</option>
+                    <option value="10">Жовтень</option>
+                    <option value="11">Листопад</option>
+                    <option value="12">Грудень</option>
+                </select>
+            </div>
+
+            <div>
+                <label for="releaseYear">Рік релізу:</label>
+                <input type="number" id="releaseYear" min="1991" max="2099" placeholder="Наприклад, 2024">
+            </div>
+        </div>
+    </div>
+
+    <label>
+        <input type="checkbox" id="gameAvailable" style="display: none;"> Гра вже доступна
+    </label>
+
+    <label for="bggLink">Посилання на гру на сайті BGG:</label>
+    <input type="text" id="bggLink" required>
+
+    <label for="buyLink">Посилання для купівлі:</label>
+    <input type="text" id="buyLink" required>
+
+    <div class="news-section">
+        <label>
+            <input type="checkbox" id="addNews"> Додати новину
+        </label>
+        <div id="newsFields" style="display: none;">
+            <label for="newsDate">Дата новини (ДД.ММ.РРРР):</label>
+            <input type="text" id="newsDate" placeholder="Наприклад, 01.01.2024">
+
+            <label for="newsLink">Посилання на новину:</label>
+            <input type="text" id="newsLink" placeholder="https://example.com">
+
+            <label for="newsType">Тип новини:</label>
+            <select id="newsType">
+                <option value="">Оберіть тип новини</option>
+                <option value="Анонс локалізації">Анонс локалізації</option>
+                <option value="Початок передзамовлення">Початок передзамовлення</option>
+                <option value="Початок продажів">Початок продажів</option>
+                <option value="custom">Інше (введіть вручну)</option>
+            </select>
+
+            <div id="customNewsTypeField" style="display: none;">
+                <label for="customNewsType">Ваш тип новини:</label>
+                <input type="text" id="customNewsType">
+            </div>
+        </div>
+    </div>
+
+    <button type="button" id="generateButton" disabled onclick="generateText()">Згенерувати текст</button>
+    <button type="button" id="copyButton" style="display: none;" onclick="copyText()">Скопіювати текст</button>
+</form>
+
+<div id="output"></div>
+
+<script>
+    const releaseDateKnownCheckbox = document.getElementById('releaseDateKnown');
+    const releaseDateFields = document.getElementById('releaseDateFields');
+    const releaseYearInput = document.getElementById('releaseYear');
+    const releaseMonthSelect = document.getElementById('releaseMonth');
+    const gameAvailableCheckbox = document.getElementById('gameAvailable');
+    const generateButton = document.getElementById('generateButton');
+    const copyButton = document.getElementById('copyButton');
+    const publisherSelect = document.getElementById('publisherSelect');
+    const publisherInput = document.getElementById('publisher');
+    const publisherBadgeInput = document.getElementById('publisherBadge');
+    const publisherCodeInput = document.getElementById('publisherCode');
+    const addNewsCheckbox = document.getElementById('addNews');
+    const newsFields = document.getElementById('newsFields');
+    const newsTypeSelect = document.getElementById('newsType');
+    const customNewsTypeField = document.getElementById('customNewsTypeField');
+
+    releaseDateKnownCheckbox.addEventListener('change', function () {
+        releaseDateFields.style.display = this.checked ? 'block' : 'none';
+        validateFields();
+    });
+
+    addNewsCheckbox.addEventListener('change', function () {
+        newsFields.style.display = this.checked ? 'block' : 'none';
+    });
+
+    newsTypeSelect.addEventListener('change', function () {
+        customNewsTypeField.style.display = this.value === 'custom' ? 'block' : 'none';
+    });
+
+    releaseYearInput.addEventListener('input', validateFields);
+    releaseMonthSelect.addEventListener('change', validateFields);
+
+    publisherSelect.addEventListener('change', function () {
+        const selectedOption = publisherSelect.options[publisherSelect.selectedIndex];
+        publisherInput.value = selectedOption.value;
+        publisherBadgeInput.value = selectedOption.getAttribute('data-badge');
+        publisherCodeInput.value = selectedOption.getAttribute('data-code');
+        validateFields();
+    });
+
+    function validateFields() {
+        const releaseYear = releaseYearInput.value;
+        const isValidYear = releaseYear >= 1991 && releaseYear <= 2099;
+
+        releaseYearInput.classList.toggle('invalid', !isValidYear && releaseYear !== "");
+
+        if (releaseYear && isValidYear) {
+            gameAvailableCheckbox.style.display = 'inline-block';
+        } else {
+            gameAvailableCheckbox.style.display = 'none';
+            gameAvailableCheckbox.checked = false;
+        }
+
+        generateButton.disabled = !document.getElementById('gameName').value || !document.getElementById('bggLink').value || !document.getElementById('buyLink').value || !isValidYear;
+    }
+
+    function generateText() {
+        const gameName = document.getElementById('gameName').value;
+        const publisherName = document.getElementById('publisher').value;
+        const publisherBadge = document.getElementById('publisherBadge').value;
+        const publisherCode = document.getElementById('publisherCode').value;
+        const releaseYear = document.getElementById('releaseYear').value;
+        const releaseMonth = document.getElementById('releaseMonth').value;
+        const gameAvailable = document.getElementById('gameAvailable').checked;
+        const bggLink = document.getElementById('bggLink').value;
+        const buyLink = document.getElementById('buyLink').value;
+
+        let text = `Назва: [b]${gameName}[/b]\n`;
+        text += `Видавництво: [microbadge=${publisherBadge}][company=${publisherCode}]${publisherName}[/company]\n`;
+
+        if (releaseYear) {
+            text += `Дата: ${releaseMonth ? releaseMonth + '.' : ''}${releaseYear}`;
+            text += gameAvailable ? '' : '?';
+            text += '\n';
+        } else {
+            text += `Дата: ?\n`;
+        }
+
+        text += `Правила та інші файли: [url=https://boardgamegeek.com/boardgame/${bggLink}/files?pageid=1&languageid=2665]посилання[/url]\n`;
+        text += `Відеоматеріали: [url=https://boardgamegeek.com/boardgame/${bggLink}/videos/all?pageid=1&languageid=2665]посилання[/url]\n`;
+        text += `[url=${buyLink}]🛒[b]Купити[/b][/url]\n`;
+
+        // Adding news sections
+        const newsBlocks = document.querySelectorAll('.news-section');
+        if (newsBlocks.length > 0) {
+            text += `\n[b]Новини[/b]\n`;
+            newsBlocks.forEach(block => {
+                const newsDate = block.querySelector('.newsDate').value;
+                const newsLink = block.querySelector('.newsLink').value;
+                const newsTypeSelect = block.querySelector('.newsType');
+                const newsType = newsTypeSelect.value === 'custom'
+                    ? block.querySelector('.customNewsType').value
+                    : newsTypeSelect.value;
+
+                if (newsDate && newsLink.startsWith('https://') && newsType) {
+                    text += `${newsDate} [url=${newsLink}]${newsType}[/url]\n`;
+                }
+            });
+        }
+
+        const outputDiv = document.getElementById('output');
+        outputDiv.textContent = text;
+
+        copyButton.style.display = 'inline-block';
+    }
+
+    function copyText() {
+        const outputText = document.getElementById('output').textContent;
+        navigator.clipboard.writeText(outputText).then(() => {
+            alert('Текст скопійовано в буфер обміну!');
+        });
+    }
+</script>
+</body>
+</html>
